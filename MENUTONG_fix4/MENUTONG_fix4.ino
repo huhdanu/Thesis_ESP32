@@ -305,16 +305,14 @@ void loop() {
     
     /* Auto Option: OptionMenu == 0 */
     if(!OptionMenu){   
-      
-      /*  */
+
       if (!FirstimeToDisplay){
           MainMenu_Auto();
           FirstimeToDisplay = 1;
           AutoMenuTransitionState = 1;
       }
-
       /* process after 5 seconds */
-      if((millis() - LastimeChangeState) > 5000){
+      if((millis() - LastimeChangeState) > 8000){
         // LastimeChangeState = millis();
         if(!AutoMenuTransitionState){
           ReadDataRoom1();
@@ -341,6 +339,7 @@ void loop() {
         }       
         else{ /* AutoMenuTransitionState == 1 */
           MainMenu_AutoRoom2();
+          
           GetDataRoom2();
           GetThresholdOnlyRoom2();
           if(AlarmStateRoom2){
@@ -358,10 +357,11 @@ void loop() {
             SetLampStateRoom2();
             flag_LampRoom2OFFapproval = 0;
           }
-          ReCall();  
+          ReCall();
+          
         }
         
-        if(PumpState ||PumpStateRoom2 ){
+        if(PumpState || PumpStateRoom2){
           SetPumpState();
         }
         else if((!PumpState) && (!PumpStateRoom2) && flag_PumpOFFapproval){
@@ -370,6 +370,7 @@ void loop() {
         }
 
         ReCall();
+        
         AutoMenuTransitionState = !AutoMenuTransitionState;
         LastimeChangeState = millis();
       }
@@ -749,11 +750,7 @@ void DivideRoom(){
 -------------------------------------------------------------------------------------*/
 void SensorMenu(){
 
-  if((millis() - LastimeToGetDataRoom1) > 4000){
-  LastimeToGetDataRoom1 = millis();
-  ReadDataRoom1();
-  SetDataRoom1();
-  }   
+  ReadDataRoom1();   
   lcd.setCursor(0, 0);  lcd.print("M       SENSORS   R1"); 
   lcd.setCursor(0, 1);  lcd.print(" GAS                ");/* GAS          [VALUE]  */
   lcd.setCursor(0, 2);  lcd.print(" TEM                ");/* TEMP         [VALUE]  */
@@ -766,18 +763,14 @@ void SensorMenu(){
   else{
     lcd.setCursor(12, 3);  lcd.print("No-Fire ");
   }
-  
+  if((millis() - LastimeToGetDataRoom1) > 4000){
+    SetDataRoom1();
+    LastimeToGetDataRoom1 = millis();
+  } 
 }
 
 /* ------------------------------------------------------------------------------------- */
 void SensorMenuRoom2(){
-
-  if((millis() - LastimeToGetDataRoom1) > 5000){
-    LastimeToGetDataRoom1 = millis();
-
-    /* get data from Firebase */
-    GetDataRoom2();
-  }   // end if
 
   /* display in LCD */
   lcd.setCursor(0, 0);  lcd.print("M     SENSORS     R2"); 
@@ -792,6 +785,11 @@ void SensorMenuRoom2(){
   }
   else{
     lcd.setCursor(12, 3);  lcd.print("No-Fire ");
+  }
+  if((millis() - LastimeToGetDataRoom1) > 4000){
+    /* get data from Firebase */
+    GetDataRoom2();
+    LastimeToGetDataRoom1 = millis();
   }
 }
 
@@ -913,8 +911,6 @@ void TempThresholdMenu(){
 
   for (int cnt = 0; cnt < sizeof(custChar) / 8; cnt++) lcd.createChar(cnt, custChar[cnt]);
 
-  // int tens_TempThreshold = TempThreshold / 10;
-  // int unit_TempThreshold = TempThreshold % 10;
   printBigNum(TempThreshold / 10, 6, 2);
   printBigNum(TempThreshold % 10, 10, 2);
 }
@@ -947,8 +943,6 @@ void TempThresholdMenuRoom2(){
 
   for (int cnt = 0; cnt < sizeof(custChar) / 8; cnt++) lcd.createChar(cnt, custChar[cnt]);
 
-  // int tens_TempThreshold = TempThreshold / 10;
-  // int unit_TempThreshold = TempThreshold % 10;
   printBigNum(TempThresholdRoom2 / 10, 6, 2);
   printBigNum(TempThresholdRoom2 % 10, 10, 2);
 }
@@ -1158,7 +1152,8 @@ void MainMenu_Auto(){
   digitalWrite(LAMP, LampState | LampState_tmp);
   digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
   IsPumpActive();
-  
+  IsAlarmActiveRoom1();
+  IsLampActiveRoom1();
 
   // if((AlarmState | AlarmState_tmp) && ))
   
@@ -1166,14 +1161,7 @@ void MainMenu_Auto(){
 }
 /*----------------------*/
 void MainMenu_AutoRoom2(){
-  // if(g_flag) {
-  //   g_flag = 0;
-  //   lcd.setCursor(0, 0);  lcd.print("                    ");/* GAS          [VALUE]  */
-  //   lcd.setCursor(0, 1);  lcd.print("                    ");
-  //   lcd.setCursor(0, 2);  lcd.print("                    ");/* GAS          [VALUE]  */
-  //   lcd.setCursor(0, 3);  lcd.print("                    ");
-  //   delay(100);                                                            // wait clear display succesfully
-  // }
+
   lcd.setCursor(0, 0);  lcd.print("A      NORMAL     R2");/*Auto    [STATE]        */
   lcd.setCursor(0, 1);  lcd.print(" GAS                ");/* GAS          [VALUE]  */
   lcd.setCursor(0, 2);  lcd.print(" TEMP               ");/* TEMP         [VALUE]  */
@@ -1272,6 +1260,8 @@ void MainMenu_AutoRoom2(){
     digitalWrite(LAMP_ROOM2, LampStateRoom2 | LampStateRoom2_tmp);
     digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
     IsPumpActive();
+    IsAlarmActiveRoom2();
+    IsLampActiveRoom2();
 }
 
 /* exception function handler --------------------------------------------------- */
@@ -1687,8 +1677,11 @@ void pressOPTION(){
       // f_EnablePhone = 1;
       g_layerMenu = DIV_ROOM;
     }
+
     // Serial.print("OptionMenu is: ");
     // Serial.println(OptionMenu);
+
+
   }
 }
 
