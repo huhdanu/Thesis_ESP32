@@ -12,35 +12,35 @@
 #define MCU_SIM_RX_PIN              16
 
 
-// #define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
-// #define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
+#define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
+#define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
 
-#define DATABASE_URL "https://doan2-344c3-default-rtdb.firebaseio.com/"
-#define DATABASE_SECRET "kyeFH9nouVJ6TU3RXBtzyge4wFvvy6tCV0StPYDT"
+// #define DATABASE_URL "https://doan2-344c3-default-rtdb.firebaseio.com/"
+// #define DATABASE_SECRET "kyeFH9nouVJ6TU3RXBtzyge4wFvvy6tCV0StPYDT"
 
 /*--------------------OUTPUT DEFINITION OF DEVICES---------------------------------------------------*/
 #define PUMP         19
 #define LAMP        18
 #define ALARM        5
 
-#define LAMP_ROOM2    2
-#define ALARM_ROOM2   15
+#define LAMP_ROOM2    4
+#define ALARM_ROOM2   2
 /*---------------------------------------------------------------------------------------------------*/
-#define FLAME_SENSOR 35
-#define DHT_PIN 32
+#define FLAME_SENSOR 39
+#define DHT_PIN 0
 #define DHT_TYPE DHT11
-#define MQ2_SENSOR 34
+#define MQ2_SENSOR 36
 DHT dht(DHT_PIN, DHT_TYPE);
 /*---------------------------------------------------------------------------------------------------*/
 #define lcdColumns  20
 #define lcdRows      4
 
-#define OPTION      12
-#define UP                  27
-#define DOWN                26
-#define BACK                25
-#define OK                  14
-#define RESET               33// tro ve ban dau chu ko phai reset wifi
+#define OPTION              12
+#define UP                  26
+#define DOWN                14
+#define BACK                13
+#define OK                  27
+#define RESET               15// tro ve ban dau chu ko phai reset wifi
 
 #define TRUE                1
 #define FALSE               0
@@ -66,8 +66,9 @@ DHT dht(DHT_PIN, DHT_TYPE);
 #define SETTING         2
 
 #define GASTHRESHOLD     3
-#define TEMPTHRESHOLD    4       
+#define TEMPTHRESHOLD    4      
 
+#define ACS_PUMP        34
 /* global variable ------------------------------------------------------------------- */
 char g_layerMenu = DIV_ROOM;               // layer menu: main, select device, control device
 char g_mode = MANUAL;                           // initial AUTO mode
@@ -93,6 +94,9 @@ unsigned long LastimeToSendData = 0;
 unsigned long LastimeChangeState = 0;
 unsigned long LastCall = 0;
 unsigned long lastTime = 0;
+/*-----------------------*/
+uint8_t ADC_pump = 0;
+uint8_t ADC_Pump_Average = 0;
 
 /*  */
 String phoneNumber = "0772488647";
@@ -214,7 +218,8 @@ void setup(){
   pinMode(BACK,INPUT_PULLUP);
   pinMode(OK,INPUT_PULLUP);
   pinMode(RESET,INPUT_PULLUP);
-
+  /* for detected current */
+  pinMode(ACS_PUMP, INPUT); 
   /* for devices */
   pinMode(ALARM, OUTPUT);
   pinMode(LAMP, OUTPUT);
@@ -289,10 +294,10 @@ void loop() {
 
       /* process after 5 seconds */
       if((millis() - LastimeChangeState) > 5000){
-        LastimeChangeState = millis();
+        // LastimeChangeState = millis();
         if(!AutoMenuTransitionState){
-          MainMenu_Auto();
           ReadDataRoom1();
+          MainMenu_Auto();
           GetThresholdOnlyRoom1();
           SetDataRoom1();
           GetPhoneNumber();
@@ -301,7 +306,7 @@ void loop() {
             SetAlarmStateRoom1();
           }
           else if((!AlarmState) && flag_AlarmOFFapproval){
-            SetLampStateRoom1();
+            SetAlarmStateRoom1();
             flag_AlarmOFFapproval= 0;
           }
           else if(LampState){
@@ -312,10 +317,8 @@ void loop() {
             flag_LampOFFapproval = 0;
           }
           ReCall();          
-        }
-
-        /* AutoMenuTransitionState == 1 */
-        else{
+        }       
+        else{ /* AutoMenuTransitionState == 1 */
           MainMenu_AutoRoom2();
           GetDataRoom2();
           GetThresholdOnlyRoom2();
@@ -344,12 +347,14 @@ void loop() {
           SetPumpState();
           flag_PumpOFFapproval = 0;
         }
-        GetDeviceStateRoom1();
-        GetDeviceStateRoom2();
-        GetPumpState();
+
         ReCall();
         AutoMenuTransitionState = !AutoMenuTransitionState;
+        LastimeChangeState = millis();
       }
+      GetDeviceStateRoom1();
+      GetDeviceStateRoom2();
+      GetPumpState();
 
       /*  */
       if((FireState || FireStateRoom2) && ((GasValue > GasThreshold)||(GasValueRoom2 > GasThresholdRoom2) ||(TempValue >  TempThreshold) ||(TempValueRoom2 > TempThresholdRoom2))){
@@ -364,15 +369,7 @@ void loop() {
         LastCall = millis();
         callPhone(phoneNumber);
         delay(18);
-        f_EnablePhone = 0;
-        // response = simSerial.readString();
-        // if((response.indexOf("OK") != -1)){
-        //   f_EnablePhone = 0;
-        // }
-        // if( millis() - LastCall > 20000){
-        //   f_EnablePhone = 0;
-        // }
-        
+        f_EnablePhone = 0;       
       }
       ReCall();   
       Serial.print("PhoneCallState is: ");
@@ -521,7 +518,6 @@ void loop() {
 
             case GASTHRESHOLD:
                 /* check flag show table confirm */
-                /* get data from Firebase one time each 0.5s */
                 if (millis() - LastimeToGetData > 500)
                 {
                   LastimeToGetData = millis();
@@ -757,10 +753,12 @@ void SensorMenu(){
   lcd.setCursor(14, 1);  lcd.print(GasValue);
   lcd.setCursor(14, 2);  lcd.print(TempValue);
   if(FireState){
-  lcd.setCursor(12, 3);  lcd.print("Detected");
+    lcd.setCursor(12, 3);  lcd.print("Detected");
   }
-  else
-  lcd.setCursor(12, 3);  lcd.print("No-Fire ");
+  else{
+    lcd.setCursor(12, 3);  lcd.print("No-Fire ");
+  }
+  
 }
 
 /* ------------------------------------------------------------------------------------- */
@@ -1094,33 +1092,31 @@ void MainMenu_Auto(){
   */
   switch(FireState){
     case 1: if( (GasValue > GasThreshold) && (TempValue > TempThreshold) ){
-              lcd.setCursor(0, 0);  lcd.print("       DANGEROUS  R1");
-              AlarmState = 1;
+              lcd.setCursor(0, 0);  lcd.print("A      DANGEROUS  R1");
+              // AlarmState = 1;
               LampState = 1;
               PumpState = 1;
             }
             else if((GasValue > GasThreshold) && (TempValue < TempThreshold)){
-              lcd.setCursor(0, 0);  lcd.print("       GAS LEAK   R1");
-              AlarmState = 1;
+              lcd.setCursor(0, 0);  lcd.print("A      GAS LEAK   R1");
+              // AlarmState = 1;
               LampState = 1;
               PumpState = 1;      
             }
             else if((GasValue < GasThreshold) && (TempValue > TempThreshold)){
-              lcd.setCursor(0, 0);  lcd.print("       HIGH TEMP  R1");
-              AlarmState = 1;
+              lcd.setCursor(0, 0);  lcd.print("A      HIGH TEMP  R1");
+              // AlarmState = 1;
               LampState = 1;
               PumpState = 1;      
             }
             else if((GasValue < GasThreshold) && (TempValue < TempThreshold)){
-              lcd.setCursor(0, 0);  lcd.print("    DETECTED FIRE R1");
-              AlarmState = 1;
+              lcd.setCursor(0, 0);  lcd.print("A   DETECTED FIRE R1");
+              // AlarmState = 1;
               LampState = 0;
               PumpState = 0;      
             }
-            else{
-            //
-            }
-            lcd.setCursor(12, 3);  lcd.print("Detected");
+              AlarmState = 1;
+              lcd.setCursor(12, 3);  lcd.print("Detected");
             break;
     case 0: if( (GasValue > GasThreshold) && (TempValue > TempThreshold) ){
               lcd.setCursor(0, 0);  lcd.print("GAS LEAK & HIGH TEMP");
@@ -1129,13 +1125,13 @@ void MainMenu_Auto(){
               PumpState = 0;
             }
             else if((GasValue > GasThreshold) && (TempValue < TempThreshold)){
-              lcd.setCursor(0, 0);  lcd.print("       GAS LEAK     ");
+              lcd.setCursor(0, 0);  lcd.print("A     GAS LEAK    R1");
               AlarmState = 1;
               LampState = 0;
               PumpState = 0;      
             }
             else if((GasValue < GasThreshold) && (TempValue > TempThreshold)){
-              lcd.setCursor(0, 0);  lcd.print("       HIGH TEMP    ");
+              lcd.setCursor(0, 0);  lcd.print("A      HIGH TEMP  R1");
               AlarmState = 1;
               LampState = 0;
               PumpState = 0;      
@@ -1153,6 +1149,10 @@ void MainMenu_Auto(){
   digitalWrite(ALARM, AlarmState | AlarmState_tmp);
   digitalWrite(LAMP, LampState | LampState_tmp);
   digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
+  IsPumpActive();
+  
+
+  // if((AlarmState | AlarmState_tmp) && ))
   
 
 }
@@ -1587,19 +1587,19 @@ void pressDOWN(){
       break;
 
     case LAYER1_MANUAL:
-          if (millis() - lastDebounceTime_DW > 250) {
-          lastDebounceTime_DW = millis();
-          (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
-        }
-        // (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
+        //   if (millis() - lastDebounceTime_DW > 250) {
+        //   lastDebounceTime_DW = millis();
+        //   (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
+        // }
+        (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
         break;
     
     case LAYER2_MANUAL:
-          if (millis() - lastDebounceTime_DW > 250) {
-            lastDebounceTime_DW = millis();
-            (g_line==LINE_1)?(g_line=LINE_2):(g_line++);
-          }
-        
+          // if (millis() - lastDebounceTime_DW > 250) {
+          //   lastDebounceTime_DW = millis();
+          //   (g_line==LINE_1)?(g_line=LINE_2):(g_line++);
+          // }
+          (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
         break;
     case LAYER3_MANUAL:
         switch (g_SaveSelLAYER2)
@@ -1608,7 +1608,7 @@ void pressDOWN(){
               /* add new feature for confirm data */
 
               if(flag_ShowConfirmThreshold == TRUE){            // flag confirm data is turn ON
-                  (g_line==LINE_2)?(g_line=LINE_2):(g_line++);
+                  (g_line==LINE_2)?(g_line=LINE_2):(g_line=LINE_2);
               }
               else{
                 if(SelectRoom == ROOM1){                       // in ROOM 1
@@ -1625,7 +1625,7 @@ void pressDOWN(){
               /* add new feature for confirm data */
 
               if(flag_ShowConfirmThreshold == TRUE){            // flag confirm data is turn ON
-                (g_line==LINE_2)?(g_line=LINE_2):(g_line++);
+                (g_line==LINE_2)?(g_line=LINE_2):(g_line=LINE_2);
               }
               else{                                             // flag confirm data is turn OFF
                 if(SelectRoom == ROOM1){                        // in ROOM 1
@@ -1639,7 +1639,7 @@ void pressDOWN(){
               }
               break;
           default:                    // for Pump, ALARM, LAMP
-              (g_line==LINE_2)?(g_line=LINE_2):(g_line++);
+              (g_line==LINE_3)?(g_line=LINE_3):(g_line++);
               break;
 
   
@@ -1689,8 +1689,13 @@ void pressOPTION(){
 void ReadDataRoom1(){
   TempValue = dht.readTemperature();
   GasValue = map(analogRead(MQ2_SENSOR), 0, 4095, 0, 100);
-  if(digitalRead(FLAME_SENSOR) == 1) FireState = 0;
-  else FireState = 1;
+  if(digitalRead(FLAME_SENSOR) == 1){
+    FireState = 0;
+  } 
+  else
+  {
+    FireState = 1;
+  }
 }
 
 /*-------------------------------------------------------------------------------------*/
@@ -1749,59 +1754,76 @@ void ShowDataBeChanged(){
 
 
 void GetThresholdOnlyRoom1(){
-  switch (g_SaveSelLAYER2)
-  {
-  case GASTHRESHOLD:
+  if (!OptionMenu){
     /*-------------------------------------------------------------------------------------------*/
     Firebase.RTDB.getInt(&fbdo,"/Room1/SETTINGS/Gas Threshold"); // get gas threshold  on firebase
-
-
-    if (!OptionMenu){                           // auto mode
-      GasThreshold = fbdo.intData();
+    GasThreshold_tmp = fbdo.intData();
+    if(GasThreshold_tmp < 1)
+    {
+      GasThreshold = 1;
     }
-    else{                                       // manual mode
-      GasThreshold_tmp = fbdo.intData();
-      Serial.println(GasThreshold_tmp);
-      if(GasThreshold_tmp != pre_Value){
-        /* assign new value for Gas Threshold */
-        GasThreshold = GasThreshold_tmp;
-        pre_Value = GasThreshold;
-
-        /* display in LCD */
-        ShowDataBeChanged();
-
-        /* off flag show table confirm */
-        flag_ShowConfirmThreshold = FALSE;
-        g_flag = TRUE;
-      }
+    else if(GasThreshold_tmp > 99)
+    {
+      GasThreshold = 99;
     }
-    break;
-  
-  case TEMPTHRESHOLD:
+    else if (GasThreshold !=  GasThreshold_tmp){
+      GasThreshold = GasThreshold_tmp;
+    }
     /*-------------------------------------------------------------------------------------------*/
     Firebase.RTDB.getInt(&fbdo,"/Room1/SETTINGS/Temperature Threshold"); // get temp value of NODE on firebase
-
-
-    if (!OptionMenu){                           // auto mode
-      TempThreshold = fbdo.intData();
+    TempThreshold_tmp = fbdo.intData();
+    if(TempThreshold_tmp < 1)
+    {
+      TempThreshold = 1;
     }
-    else{                                       // manual mode
-      TempThreshold_tmp = fbdo.intData();
-      Serial.println(TempThreshold_tmp);
-      if(TempThreshold_tmp != pre_Value){
-        /* assign new value for Gas Threshold */
-        TempThreshold = TempThreshold_tmp;
-        pre_Value = TempThreshold;
+    else if(TempThreshold_tmp > 99)
+    {
+      TempThreshold = 100;
+    }
+    else TempThreshold =  TempThreshold_tmp;
+    /*-------------------------------------------------------------------------------------------*/
+  }
+  else{
+    switch (g_SaveSelLAYER2)
+      {
+      case GASTHRESHOLD:
+        /*-------------------------------------------------------------------------------------------*/
+          Firebase.RTDB.getInt(&fbdo,"/Room1/SETTINGS/Gas Threshold"); // get gas threshold  on firebase
+          GasThreshold_tmp = fbdo.intData();
+          Serial.println(GasThreshold_tmp);
+          if(GasThreshold_tmp != pre_Value){
+            /* assign new value for Gas Threshold */
+            GasThreshold = GasThreshold_tmp;
+            pre_Value = GasThreshold;
 
-        /* display in LCD */
-        ShowDataBeChanged();
+            /* display in LCD */
+            ShowDataBeChanged();
 
-        /* off flag show table confirm */
-        flag_ShowConfirmThreshold = FALSE;
-        g_flag = TRUE;
+            /* off flag show table confirm */
+            flag_ShowConfirmThreshold = FALSE;
+            g_flag = TRUE;
+          }       
+        break;
+
+      case TEMPTHRESHOLD:
+        /*-------------------------------------------------------------------------------------------*/
+        Firebase.RTDB.getInt(&fbdo,"/Room1/SETTINGS/Temperature Threshold"); // get temp value of NODE on firebase
+          TempThreshold_tmp = fbdo.intData();
+          Serial.println(TempThreshold_tmp);
+          if(TempThreshold_tmp != pre_Value){
+            /* assign new value for Gas Threshold */
+            TempThreshold = TempThreshold_tmp;
+            pre_Value = TempThreshold;
+
+            /* display in LCD */
+            ShowDataBeChanged();
+
+            /* off flag show table confirm */
+            flag_ShowConfirmThreshold = FALSE;
+            g_flag = TRUE;
+          }        
+        break;
       }
-    }
-    break;
   }
 }
 
@@ -1877,59 +1899,78 @@ void GetDataRoom2(){
 
 /*-------------------------------------------------------------------------------------*/
 void GetThresholdOnlyRoom2(){
-  switch (g_SaveSelLAYER2)
-  {
-  case GASTHRESHOLD:
+  if(!OptionMenu){
     /*-------------------------------------------------------------------------------------------*/
     Firebase.RTDB.getInt(&fbdo,"/ROOM2/SETTINGS/Gas Threshold"); // get gas threshold  on firebase
-
-
-    if (!OptionMenu){                           // auto mode
-      GasThresholdRoom2 = fbdo.intData();
+    GasThreshold_tmpRoom2 = fbdo.intData();
+    if(GasThreshold_tmpRoom2 < 1)
+    {
+      GasThresholdRoom2 = 1;
     }
-    else{                                       // manual mode
-      GasThreshold_tmpRoom2 = fbdo.intData();
-      Serial.println(GasThreshold_tmpRoom2);
-      if(GasThreshold_tmpRoom2 != pre_Value){
-        /* assign new value for Gas Threshold */
-        GasThresholdRoom2 = GasThreshold_tmpRoom2;
-        pre_Value = GasThresholdRoom2;
-
-        /* display in LCD */
-        ShowDataBeChanged();
-
-        /* off flag show table confirm */
-        flag_ShowConfirmThreshold = FALSE;
-        g_flag = TRUE;
-      }
+    else if(GasThreshold_tmpRoom2 > 99)
+    {
+      GasThresholdRoom2 = 99;
     }
-    break;
-  
-  case TEMPTHRESHOLD:
+    else if(GasThresholdRoom2 !=  GasThreshold_tmpRoom2){
+      GasThresholdRoom2 = GasThreshold_tmpRoom2;
+    }
     /*-------------------------------------------------------------------------------------------*/
     Firebase.RTDB.getInt(&fbdo,"/ROOM2/SETTINGS/Temperature Threshold"); // get temp value of NODE on firebase
-
-
-    if (!OptionMenu){                           // auto mode
-      TempThresholdRoom2 = fbdo.intData();
+    TempThreshold_tmpRoom2 = fbdo.intData();
+    if(TempThreshold_tmpRoom2 < 1)
+    {
+      TempThresholdRoom2 = 1;
     }
-    else{                                       // manual mode
-      TempThreshold_tmpRoom2 = fbdo.intData();
-      Serial.println(TempThreshold_tmpRoom2);
-      if(TempThreshold_tmpRoom2 != pre_Value){
-        /* assign new value for Gas Threshold */
-        TempThresholdRoom2 = TempThreshold_tmpRoom2;
-        pre_Value = TempThresholdRoom2;
-
-        /* display in LCD */
-        ShowDataBeChanged();
-
-        /* off flag show table confirm */
-        flag_ShowConfirmThreshold = FALSE;
-        g_flag = TRUE;
-      }
+    else if(TempThreshold_tmpRoom2 > 99)
+    {
+      TempThresholdRoom2 = 99;
     }
-    break;
+    else if (TempThresholdRoom2 !=  TempThreshold_tmpRoom2){
+      TempThresholdRoom2 = TempThreshold_tmpRoom2;
+    }
+    /*-------------------------------------------------------------------------------------------*/
+  } 
+  else{
+    switch (g_SaveSelLAYER2){
+      case GASTHRESHOLD:
+        /*-------------------------------------------------------------------------------------------*/
+        Firebase.RTDB.getInt(&fbdo,"/ROOM2/SETTINGS/Gas Threshold"); // get gas threshold  on firebase
+          GasThreshold_tmpRoom2 = fbdo.intData();
+          Serial.println(GasThreshold_tmpRoom2);
+          if(GasThreshold_tmpRoom2 != pre_Value){
+            /* assign new value for Gas Threshold */
+            GasThresholdRoom2 = GasThreshold_tmpRoom2;
+            pre_Value = GasThresholdRoom2;
+
+            /* display in LCD */
+            ShowDataBeChanged();
+
+            /* off flag show table confirm */
+            flag_ShowConfirmThreshold = FALSE;
+            g_flag = TRUE;
+          }
+        
+        break;
+      
+      case TEMPTHRESHOLD:
+        /*-------------------------------------------------------------------------------------------*/
+        Firebase.RTDB.getInt(&fbdo,"/ROOM2/SETTINGS/Temperature Threshold"); // get temp value of NODE on firebase
+          TempThreshold_tmpRoom2 = fbdo.intData();
+          Serial.println(TempThreshold_tmpRoom2);
+          if(TempThreshold_tmpRoom2 != pre_Value){
+            /* assign new value for Gas Threshold */
+            TempThresholdRoom2 = TempThreshold_tmpRoom2;
+            pre_Value = TempThresholdRoom2;
+
+            /* display in LCD */
+            ShowDataBeChanged();
+
+            /* off flag show table confirm */
+            flag_ShowConfirmThreshold = FALSE;
+            g_flag = TRUE;
+          }       
+        break;
+    }
   }
 }
 
@@ -1994,22 +2035,79 @@ void ReCall(){
   if(PhoneCallState){
     response = simSerial.readString();
     Serial.println(response); 
+  
+    if(((millis() - LastCall > 44000) && (response.indexOf("NO CARRIER") != -1))
+    ||((response.indexOf("ERROR") != -1) || (response.indexOf("+CME ERROR: memory failure") != -1))) {
+      LastCall = millis();
+      callPhone(phoneNumber);
+      delay(5);
+    }   
   }
-  if(((millis() - LastCall > 44000) && (response.indexOf("NO CARRIER") != -1))
-   ||((response.indexOf("ERROR") != -1) || (response.indexOf("+CME ERROR: memory failure") != -1))) {
-    LastCall = millis();
-    callPhone(phoneNumber);
-    delay(5);
-  }   
 }
 
 /*-------------------------------------------------------------------------------------*/
 void GetPhoneNumber(){
-if((millis() - LastimeToCheckWifi > 60000) && !PhoneCallState){
+  if((millis() - LastimeToCheckWifi > 60000) && !PhoneCallState){
     Firebase.RTDB.getString(&fbdo, "/PhoneNumber");
     phoneNumber = fbdo.stringData();
     LastimeToCheckWifi = millis();
   }
+}
+/*-----------------------------ARE DEVICES REALLY AVITVE?-------------------------------*/
+
+
+void IsPumpActive(){
+  if(PumpState || PumpState_tmp || PumpStateRoom2){
+    ADC_Pump_Average = 0;
+      for(char i = 0; i < 100; i++){
+        ADC_pump = analogRead(ACS_PUMP);
+        ADC_Pump_Average += ADC_pump;
+      }
+    ADC_Pump_Average /= 100;
+    if(ADC_Pump_Average > 2965){
+      Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 1); 
+    }
+    else{
+      Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 0); 
+    }
+    Serial.println(ADC_Pump_Average); 
+  }
+}
+/*-----------------------------ROOM1-------------------------------*/
+/*
+void IsAlarmActiveRoom1(){
+  if(ADC_AlarmRoom1_Average > 2965){
+     Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 1); 
+  }
+  else{
+    Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 0); 
+  } 
+}
+void IsLampActiveRoom1(){
+  if(ADC_LampRoom1_Average > 2965){
+     Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 1); 
+  }
+  else{
+    Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 0); 
+  } 
+}
+/*-----------------------------ROOM2-------------------------------*/
+/*
+void IsAlarmActiveRoom2(){
+  if(ADC_AlarmRoom2_Average > 2965){
+     Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 1); 
+  }
+  else{
+    Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 0); 
+  } 
+}
+void IsLampActiveRoom2(){
+  if(ADC_LampRoom2_Average > 2965){
+     Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 1); 
+  }
+  else{
+    Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 0); 
+  } 
 }
 
 /*======================================= END =====================================*/
