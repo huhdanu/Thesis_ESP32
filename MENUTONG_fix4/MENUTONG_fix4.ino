@@ -26,14 +26,15 @@
 #define LAMP_ROOM2    4
 #define ALARM_ROOM2   2
 /*--------------------FEEDBACK DEFINITION OF DEVICES---------------------------------------------------*/
-#define ACS_PUMP        34
-#define ACS_ALARMROOM1  35
-#define ACS_ALARMROOM2  32
+#define ACS_PUMP        34 //ok
+#define ACS_ALARMROOM1  35 //ok
+#define ACS_ALARMROOM2  32 //ok
 /*---------------------------*/
-#define ACS_LAMPROOM1   33
-#define ACS_LAMPROOM2   25  
+#define ACS_LAMPROOM2   25  //???
+#define ACS_LAMPROOM1   33 //ok
 
-#define ADCTHRESHOLD  2930 /*threshold to detect whether the LOAD is active*/
+
+#define ADCTHRESHOLD  2936 /*threshold to detect whether the LOAD is active*/
 /*---------------------------------------------------------------------------------------------------*/
 #define FLAME_SENSOR 39
 #define DHT_PIN 0
@@ -99,7 +100,7 @@ unsigned long LastimeToCheckWifi = 0;
 unsigned long LastimeToGetData = 0;
 unsigned long LastimeToSetDevice = 0;
 unsigned long LastimeToGetDataRoom1 = 0;
-unsigned long LastimeToSendData = 0;
+unsigned long LastimeToSetDeviceState = 0;
 unsigned long LastimeChangeState = 0;
 unsigned long LastCall = 0;
 unsigned long lastTime = 0;
@@ -234,12 +235,12 @@ void setup(){
   pinMode(OK,INPUT_PULLUP);
   pinMode(RESET,INPUT_PULLUP);
   /* for detected current */
+  pinMode(ACS_LAMPROOM2, INPUT);
   pinMode(ACS_PUMP, INPUT);
   pinMode(ACS_ALARMROOM1, INPUT);
   pinMode(ACS_LAMPROOM1, INPUT);
   pinMode(ACS_ALARMROOM2, INPUT);
-  pinMode(ACS_LAMPROOM2, INPUT);
-   
+
   /* for devices */
   pinMode(ALARM, OUTPUT);
   pinMode(LAMP, OUTPUT);
@@ -2065,101 +2066,115 @@ void GetPhoneNumber(){
 
 
 void IsPumpActive(){
-  if(PumpState || PumpState_tmp || PumpStateRoom2){
-    uint32_t ADC_Pump_Average = 0;
-      for(uint8_t i = 0; i < 255; i++){
-        uint16_t ADC_Pump = analogRead(ACS_PUMP);
-        ADC_Pump_Average += ADC_Pump;
-      }
-    ADC_Pump_Average /= 255;
+  if (millis() - LastimeToSetDeviceState > 3000) {
+    LastimeToSetDeviceState = millis();
+    if(PumpState || PumpState_tmp || PumpStateRoom2){
+      uint32_t ADC_Pump_Average = 0;
+        for(uint8_t i = 0; i < 255; i++){
+          uint16_t ADC_Pump = analogRead(ACS_PUMP);
+          ADC_Pump_Average += ADC_Pump;
+        }
+      ADC_Pump_Average /= 255;
 
-    if(ADC_Pump_Average > ADCTHRESHOLD){
-      Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 1); 
+      if(ADC_Pump_Average > ADCTHRESHOLD){
+        Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 1); 
+      }
+      else{
+        Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 0); 
+      }
+      Serial.print("ADC_Pump_Average");
+      Serial.println(ADC_Pump_Average); 
     }
-    else{
-      Firebase.setInt(fbdo, "/ACTIVE/IsPumpActive", 0); 
-    }
-    Serial.print("ADC_Pump_Average");
-    Serial.println(ADC_Pump_Average); 
   }
 }
 /*-----------------------------ROOM1-------------------------------*/
 
 void IsAlarmActiveRoom1(){
-  if(AlarmState || AlarmState_tmp){
-    uint32_t ADC_AlarmRoom1_Average = 0;
-      for(uint8_t i = 0; i < 255; i++){
-        uint16_t ADC_AlarmRoom1 = analogRead(ACS_ALARMROOM1);
-        ADC_AlarmRoom1_Average += ADC_AlarmRoom1;
-      }
-    ADC_AlarmRoom1_Average /= 255;
+  if (millis() - LastimeToSetDeviceState > 3000) {
+  LastimeToSetDeviceState = millis();
+    if(AlarmState || AlarmState_tmp){
+      uint32_t ADC_AlarmRoom1_Average = 0;
+        for(uint8_t i = 0; i < 255; i++){
+          uint16_t ADC_AlarmRoom1 = analogRead(ACS_ALARMROOM1);
+          ADC_AlarmRoom1_Average += ADC_AlarmRoom1;
+        }
+      ADC_AlarmRoom1_Average /= 255;
 
-    if(ADC_AlarmRoom1_Average > ADCTHRESHOLD){
-      Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 1); 
+      if(ADC_AlarmRoom1_Average > ADCTHRESHOLD){
+        Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 1); 
+      }
+      else{
+        Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 0); 
+      }
+      Serial.print("ADC_AlarmRoom1_Average");
+      Serial.println(ADC_AlarmRoom1_Average);  
     }
-    else{
-      Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom1", 0); 
-    }
-    Serial.print("ADC_AlarmRoom1_Average");
-    Serial.println(ADC_AlarmRoom1_Average);  
   }
 }
 void IsLampActiveRoom1(){
-  if(LampState || LampState_tmp){
-  uint32_t ADC_LampRoom1_Average = 0;
-    for(uint8_t i = 0; i < 255; i++){
-      uint16_t ADC_LampRoom1 = analogRead(ACS_LAMPROOM1);
-      ADC_LampRoom1_Average += ADC_LampRoom1;
+  if (millis() - LastimeToSetDeviceState > 3000) {
+  LastimeToSetDeviceState = millis();
+    if(LampState || LampState_tmp){
+    uint32_t ADC_LampRoom1_Average = 0;
+      for(uint8_t i = 0; i < 255; i++){
+        uint16_t ADC_LampRoom1 = analogRead(ACS_LAMPROOM1);
+        ADC_LampRoom1_Average += ADC_LampRoom1;
+      }
+      ADC_LampRoom1_Average /= 255;
+      if(ADC_LampRoom1_Average > ADCTHRESHOLD){
+        Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 1); 
+      }
+      else{
+        Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 0); 
+      } 
+      Serial.print("ADC_LampRoom1_Average");
+      Serial.println(ADC_LampRoom1_Average);  
     }
-    ADC_LampRoom1_Average /= 255;
-    if(ADC_LampRoom1_Average > ADCTHRESHOLD){
-      Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 1); 
-    }
-    else{
-      Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom1", 0); 
-    } 
-    Serial.print("ADC_LampRoom1_Average");
-    Serial.println(ADC_LampRoom1_Average);  
   }
 }
 /*-----------------------------ROOM2-------------------------------*/
 
 void IsAlarmActiveRoom2(){
-  if(AlarmStateRoom2 || AlarmStateRoom2_tmp){
-    uint32_t ADC_AlarmRoom2_Average = 0;
-      for(uint8_t i = 0; i < 255; i++){
-        uint16_t ADC_AlarmRoom2 = analogRead(ACS_ALARMROOM2);
-        ADC_AlarmRoom2_Average += ADC_AlarmRoom2;
-      }
-    ADC_AlarmRoom2_Average /= 255;
+  if (millis() - LastimeToSetDeviceState > 3000) {
+  LastimeToSetDeviceState = millis();
+    if(AlarmStateRoom2 || AlarmStateRoom2_tmp){
+      uint32_t ADC_AlarmRoom2_Average = 0;
+        for(uint8_t i = 0; i < 255; i++){
+          uint16_t ADC_AlarmRoom2 = analogRead(ACS_ALARMROOM2);
+          ADC_AlarmRoom2_Average += ADC_AlarmRoom2;
+        }
+      ADC_AlarmRoom2_Average /= 255;
 
-    if(ADC_AlarmRoom2_Average > ADCTHRESHOLD){
-      Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 1); 
+      if(ADC_AlarmRoom2_Average > ADCTHRESHOLD){
+        Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 1); 
+      }
+      else{
+        Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 0); 
+      } 
+      Serial.print("ADC_AlarmRoom2_Average");
+      Serial.println(ADC_AlarmRoom2_Average); 
     }
-    else{
-      Firebase.setInt(fbdo, "/ACTIVE/IsAlarmActiveRoom2", 0); 
-    } 
-    Serial.print("ADC_AlarmRoom2_Average");
-    Serial.println(ADC_AlarmRoom2_Average); 
   }
 }
 void IsLampActiveRoom2(){
-  if(LampStateRoom2 || LampStateRoom2_tmp){
-  uint32_t ADC_LampRoom2_Average = 0;
-    for(uint8_t i = 0; i < 255; i++){
-      uint16_t ADC_LampRoom2 = analogRead(ACS_LAMPROOM2);
-      ADC_LampRoom2_Average += ADC_LampRoom2;
+  if (millis() - LastimeToSetDeviceState > 3000) {
+  LastimeToSetDeviceState = millis();
+    if(LampStateRoom2 || LampStateRoom2_tmp){
+    uint32_t ADC_LampRoom2_Average = 0;
+      for(uint8_t i = 0; i < 255; i++){
+        uint16_t ADC_LampRoom2 = analogRead(ACS_LAMPROOM2);
+        ADC_LampRoom2_Average += ADC_LampRoom2;
+      }
+      ADC_LampRoom2_Average /= 255;
+      if(ADC_LampRoom2_Average > ADCTHRESHOLD){
+        Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 1); 
+      }
+      else{
+        Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 0); 
+      } 
+      Serial.print("ADC_LampRoom2_Average");
+      Serial.println(ADC_LampRoom2_Average);  
     }
-    ADC_LampRoom2_Average /= 255;
-  
-    if(ADC_LampRoom2_Average > ADCTHRESHOLD){
-      Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 1); 
-    }
-    else{
-      Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 0); 
-    }
-    Serial.print("ADC_LampRoom2_Average"); 
-    Serial.println(ADC_LampRoom2_Average); 
   }
 }
 
