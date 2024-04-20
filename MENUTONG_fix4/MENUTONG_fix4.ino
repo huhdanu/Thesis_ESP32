@@ -441,8 +441,7 @@ void loop() {
                 // display menu list SETTING
                 SettingMenu();
                 break;                                  
-            }
-            
+            }           
             /* break in case LAYER2_MANUAL */
             break;                                      
         case LAYER3_MANUAL:                // ON - OFF device layer
@@ -457,35 +456,28 @@ void loop() {
                     PumpStateRoom2 = 0;
                     PumpState = 1;
                   }
-
-                  /* send data to Firebase each 3s */
-                  if(Pump_PreState !=PumpState) {
-                    // LastimeToSetDevice = millis();
-                    Pump_PreState = PumpState;
+                  if(Pump_PreState != PumpState) {                
                     /* send data to Firebase function */
                     SetPumpState();
+                    Pump_PreState = PumpState;
                   }
-
-                break;
-            
+                  IsPumpActive();
+                break;            
             case ALARM:
                 // display menu ALARM
                 AlarmControlMenu();
-
                 if(SelectRoom == ROOM1){
                   digitalWrite(ALARM, AlarmState | AlarmState_tmp);
                   if(AlarmState_tmp){
                     AlarmState = AlarmState_tmp;
                     AlarmState_tmp = 0;
                   }
-
-                  /* set data to Firebase after 3s */
-                  if((millis() - LastimeToSetDevice) > 3000){
-                    LastimeToSetDevice = millis();
+                  if(Alarm_PreState != AlarmState) {
                     SetAlarmStateRoom1();
+                    Alarm_PreState = AlarmState;
                   }
+                  IsAlarmActiveRoom1();
                 }
-
                 /* case in ROOM 2 */
                 else{
                   digitalWrite(ALARM_ROOM2, AlarmStateRoom2 | AlarmStateRoom2_tmp);
@@ -493,33 +485,29 @@ void loop() {
                     AlarmStateRoom2 = AlarmStateRoom2_tmp;
                     AlarmStateRoom2_tmp = 0;
                   }
-
-                  /* set data to Firebase after 3s */
-                  if((millis() - LastimeToSetDevice) > 3000){
-                    LastimeToSetDevice = millis();
+                  if(AlarmRoom2_PreState != AlarmStateRoom2) {            
                     SetAlarmStateRoom2();
+                    AlarmRoom2_PreState = AlarmStateRoom2;
                   }
+                  IsAlarmActiveRoom2();                 
                 }             
                 break;
 
             case LAMP:
                 // display menu LAMP
                 LampControlMenu();
-
                 if(SelectRoom == ROOM1){
                   digitalWrite(LAMP, LampState | LampState_tmp);
                   if(LampState_tmp){
                     LampState = LampState_tmp;
                     LampState_tmp = 0;
                   }
-
-                  /* set data to Firebase after 3s */
-                  if((millis() - LastimeToSetDevice) > 3000){
-                    LastimeToSetDevice = millis();
+                  if(Lamp_PreState != LampState) {
                     SetLampStateRoom1();
+                    Lamp_PreState = LampState;
                   }
+                  IsLampActiveRoom1();
                 }
-
                 /* case in ROOM 2 */
                 else{
                   digitalWrite(LAMP_ROOM2, LampStateRoom2 | LampStateRoom2_tmp);
@@ -527,12 +515,11 @@ void loop() {
                     LampStateRoom2 = LampStateRoom2_tmp;
                     LampStateRoom2_tmp = 0;
                   }
-
-                  /* set data to Firebase after 3s */
-                  if((millis() - LastimeToSetDevice) > 3000){
-                    LastimeToSetDevice = millis();
+                  if(LampRoom2_PreState != LampStateRoom2) {
                     SetLampStateRoom2();
+                    LampRoom2_PreState = LampStateRoom2;
                   }
+                  IsLampActiveRoom2();
                 } 
                 break;
 
@@ -2175,19 +2162,6 @@ void IsLampActiveRoom2(){
     Serial.println(ADC_LampRoom2_Average); 
   }
 }
-/*
-  void IsLampActive(){
-      uint16_t Voltage_LAMP_Average = 0;
-      for(char i = 0; i < 100; i++){
-        uint16_t Voltage_LAMP = analogRead(ACS_LAMP);
-        Voltage_LAMP_Average += Voltage_LAMP;
-      }
-      Voltage_LAMP_Average /= 100; 
-    Serial.print("Voltage_LAMP: ");
-    Serial.println(Voltage_LAMP_Average);
-    delay(700);
-  }
-*/
 
 /*======================================= END =====================================*/
 
