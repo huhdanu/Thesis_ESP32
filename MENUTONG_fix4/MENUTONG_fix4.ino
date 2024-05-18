@@ -12,11 +12,11 @@
 #define MCU_SIM_RX_PIN              16
 
 
-#define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
-#define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
+// #define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
+// #define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
 
-// #define DATABASE_URL "https://final-pro-97449-default-rtdb.firebaseio.com/"
-// #define DATABASE_SECRET "w46zvJ2MFTUyHnt4TwUW08aqNq9X1NCIEkVGllKL"
+#define DATABASE_URL "https://final-pro-97449-default-rtdb.firebaseio.com/"
+#define DATABASE_SECRET "w46zvJ2MFTUyHnt4TwUW08aqNq9X1NCIEkVGllKL"
 
 /*--------------------OUTPUT DEFINITION OF DEVICES---------------------------------------------------*/
 #define PUMP         19
@@ -2210,7 +2210,7 @@ void IsLampActiveRoom2(){
 void GetOptionMenu(){
    Firebase.RTDB.getInt(&fbdo, "/OPTION");
     Option_tmp = fbdo.intData();
-    if((OptionMenu != Option_tmp) && (OptionMenu == Option_pre){
+    if((OptionMenu != Option_tmp) && (OptionMenu == Option_pre)){
       OptionMenu = Option_tmp;
     }
 }
