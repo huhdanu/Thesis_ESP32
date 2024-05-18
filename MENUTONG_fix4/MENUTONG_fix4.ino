@@ -94,7 +94,9 @@ bool flag_AlarmRoom2OFFapproval = 0;
 bool flag_LampOFFapproval = 0;
 bool flag_LampRoom2OFFapproval = 0;
 bool OptionMenu = 1; // Manual | Auto
+bool Option_pre =1;
 bool Option_tmp;
+
 /*  */
 unsigned long LastimeToCheckWifi = 0;
 unsigned long LastimeToGetData = 0;
@@ -635,7 +637,7 @@ void loop() {
         }
       }
     }
-  SetOptionMenu(OptionMenu);
+  SetOptionMenu();
 }
 /*==================================== END MAIN ====================================== */
 
@@ -2211,10 +2213,10 @@ void GetOptionMenu(){
       OptionMenu = Option_tmp;
     }
 }
-void SetOptionMenu(bool Option){
-  if(Option != Option_tmp){
-    Option_tmp = Option;
-    Firebase.setInt(fbdo, "/OPTION", Option);
+void SetOptionMenu(){
+  if((OptionMenu != Option_pre) && (OptionMenu != Option_tmp)){
+    Firebase.setInt(fbdo, "/OPTION", OptionMenu);
+    Option_pre = OptionMenu;
   }
 }
 
