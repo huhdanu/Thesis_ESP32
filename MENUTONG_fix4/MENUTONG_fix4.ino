@@ -94,7 +94,7 @@ bool flag_AlarmRoom2OFFapproval = 0;
 bool flag_LampOFFapproval = 0;
 bool flag_LampRoom2OFFapproval = 0;
 bool OptionMenu = 1; // Manual | Auto
-
+bool Option_tmp;
 /*  */
 unsigned long LastimeToCheckWifi = 0;
 unsigned long LastimeToGetData = 0;
@@ -612,7 +612,7 @@ void loop() {
           break;                                          
         }
     }          
-
+    GetOptionMenu();
     /* Reset to config wifi */
     LastState_ResetButton = NewState_ResetButton;   // save old state before get from button
     NewState_ResetButton = digitalRead(RESET);
@@ -635,6 +635,7 @@ void loop() {
         }
       }
     }
+  SetOptionMenu(OptionMenu);
 }
 /*==================================== END MAIN ====================================== */
 
@@ -2201,6 +2202,19 @@ void IsLampActiveRoom2(){
       Serial.print("ADC_LampRoom2_Average");
       Serial.println(ADC_LampRoom2_Average);  
     }
+  }
+}
+void GetOptionMenu(){
+   Firebase.RTDB.getInt(&fbdo, "/OPTION");
+    Option_tmp = fbdo.intData();
+    if(OptionMenu != Option_tmp){
+      OptionMenu = Option_tmp;
+    }
+}
+void SetOptionMenu(bool Option){
+  if(Option != Option_tmp){
+    Option_tmp = Option;
+    Firebase.setInt(fbdo, "/OPTION", Option);
   }
 }
 
