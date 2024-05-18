@@ -638,6 +638,7 @@ void loop() {
       }
     }
   SetOptionMenu();
+  Option_pre = OptionMenu;
 }
 /*==================================== END MAIN ====================================== */
 
@@ -2209,14 +2210,13 @@ void IsLampActiveRoom2(){
 void GetOptionMenu(){
    Firebase.RTDB.getInt(&fbdo, "/OPTION");
     Option_tmp = fbdo.intData();
-    if(OptionMenu != Option_tmp){
+    if((OptionMenu != Option_tmp) && (OptionMenu == Option_pre){
       OptionMenu = Option_tmp;
     }
 }
 void SetOptionMenu(){
   if((OptionMenu != Option_pre) && (OptionMenu != Option_tmp)){
     Firebase.setInt(fbdo, "/OPTION", OptionMenu);
-    Option_pre = OptionMenu;
   }
 }
 
