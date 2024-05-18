@@ -12,11 +12,11 @@
 #define MCU_SIM_RX_PIN              16
 
 
-// #define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
-// #define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
+#define DATABASE_URL "https://webcr7-ed8b1-default-rtdb.firebaseio.com"
+#define DATABASE_SECRET "AIzaSyDLBnMV4FkvaujtNfcZDCSCUg_wrDkjNag"
 
-#define DATABASE_URL "https://final-pro-97449-default-rtdb.firebaseio.com/"
-#define DATABASE_SECRET "w46zvJ2MFTUyHnt4TwUW08aqNq9X1NCIEkVGllKL"
+// #define DATABASE_URL "https://final-pro-97449-default-rtdb.firebaseio.com/"
+// #define DATABASE_SECRET "w46zvJ2MFTUyHnt4TwUW08aqNq9X1NCIEkVGllKL"
 
 /*--------------------OUTPUT DEFINITION OF DEVICES---------------------------------------------------*/
 #define PUMP         19
@@ -34,7 +34,7 @@
 #define ACS_LAMPROOM1   33 //ok
 
 
-#define ADCTHRESHOLD  2936 /*threshold to detect whether the LOAD is active*/
+#define ADCTHRESHOLD  2907 /*threshold to detect whether the LOAD is active*/
 /*---------------------------------------------------------------------------------------------------*/
 #define FLAME_SENSOR 39
 #define DHT_PIN 0
@@ -45,11 +45,11 @@ DHT dht(DHT_PIN, DHT_TYPE);
 #define lcdColumns  20
 #define lcdRows      4
 
-#define OPTION              12
+#define OPTION              13
 #define UP                  26
 #define DOWN                14
-#define BACK                13
-#define OK                  27
+#define BACK                27
+#define OK                  12
 #define RESET               15// tro ve ban dau chu ko phai reset wifi
 
 #define TRUE                1
@@ -101,6 +101,10 @@ unsigned long LastimeToGetData = 0;
 unsigned long LastimeToSetDevice = 0;
 unsigned long LastimeToGetDataRoom1 = 0;
 unsigned long LastimeToSetDeviceState = 0;
+unsigned long LastimeToSetAlarmStateRoom1 = 0;
+unsigned long LastimeToSetAlarmStateRoom2 = 0;
+unsigned long LastimeToSetLampStateRoom1 = 0;
+unsigned long LastimeToSetLampStateRoom2 = 0;
 unsigned long LastimeChangeState = 0;
 unsigned long LastCall = 0;
 unsigned long lastTime = 0;
@@ -157,7 +161,7 @@ bool AutoMenuTransitionState; // Menu Room1 -> MenuRoom2
 
 unsigned long StartToCountAfterPressResetButton;
 unsigned long CurrentCountAfterPressResetButton;
-
+unsigned long LastTimetoDetectFire;
 bool PumpState, LampState, AlarmState;
 bool PumpState_tmp, LampState_tmp, AlarmState_tmp;               // firebase state
 bool PumpStateRoom2, LampStateRoom2, AlarmStateRoom2;
@@ -168,6 +172,7 @@ bool Lamp_PreState = 0;
 bool Alarm_PreState = 0;
 bool LampRoom2_PreState = 0;
 bool AlarmRoom2_PreState = 0;
+
 
 /* this flag use for controlling the value of "PhoneState", if PhoneState is TRUE-> has really detected fire and notify user AND
 just in case THE user decline to anser AND
@@ -312,7 +317,7 @@ void loop() {
           AutoMenuTransitionState = 1;
       }
       /* process after 5 seconds */
-      if((millis() - LastimeChangeState) > 8000){
+      if((millis() - LastimeChangeState) > 6500){
         // LastimeChangeState = millis();
         if(!AutoMenuTransitionState){
           ReadDataRoom1();
@@ -360,7 +365,7 @@ void loop() {
           ReCall();
           
         }
-        
+                
         if(PumpState || PumpStateRoom2){
           SetPumpState();
         }
@@ -373,7 +378,9 @@ void loop() {
         
         AutoMenuTransitionState = !AutoMenuTransitionState;
         LastimeChangeState = millis();
+        ReadDataRoom1();
       }
+      ReadDataRoom1();
       GetDeviceStateRoom1();
       GetDeviceStateRoom2();
       GetPumpState();
@@ -398,6 +405,26 @@ void loop() {
       Serial.println(PhoneCallState);
       Serial.print("f_EnablePhone is: ");
       Serial.println(f_EnablePhone);
+      /*---------------------------------------*/
+      Serial.print("AlarmStateRoom1 is: ");
+      Serial.println(AlarmState);
+
+      Serial.print("LampStateRoom1 is: ");
+      Serial.println(LampState);
+
+      Serial.print("PumpStateRoom1 is: ");
+      Serial.println(PumpState);
+      /*---------------------------------------*/
+
+      Serial.print("AlarmStateRoom2 is: ");
+      Serial.println(AlarmStateRoom2);
+
+      Serial.print("LampStateRoom2 is: ");
+      Serial.println(LampStateRoom2);
+
+      Serial.print("PumpStateRoom2 is: ");
+      Serial.println(PumpStateRoom2);
+
     }
 
     /* MANUAL MODE ----------------------------------->! */
@@ -1138,7 +1165,7 @@ void MainMenu_Auto(){
               LampState = 0;
               PumpState = 0;      
             }
-            else{
+            else if((GasValue < GasThreshold) && (TempValue < TempThreshold)){
               lcd.setCursor(0, 0);  lcd.print("A      NORMAL     R1");
               AlarmState = 0;
               LampState = 0;
@@ -1149,14 +1176,13 @@ void MainMenu_Auto(){
   }
 
   digitalWrite(ALARM, AlarmState | AlarmState_tmp);
-  digitalWrite(LAMP, LampState | LampState_tmp);
-  digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
-  IsPumpActive();
-  IsAlarmActiveRoom1();
-  IsLampActiveRoom1();
-
-  // if((AlarmState | AlarmState_tmp) && ))
   
+  digitalWrite(LAMP, LampState | LampState_tmp);
+  
+  digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
+  IsAlarmActiveRoom1();
+  IsPumpActive();
+  IsLampActiveRoom1();
 
 }
 /*----------------------*/
@@ -1257,11 +1283,14 @@ void MainMenu_AutoRoom2(){
             break;        
   }
     digitalWrite(ALARM_ROOM2, AlarmStateRoom2 | AlarmStateRoom2_tmp);
+    
     digitalWrite(LAMP_ROOM2, LampStateRoom2 | LampStateRoom2_tmp);
+    
     digitalWrite(PUMP, PumpState | PumpState_tmp | PumpStateRoom2);
     IsPumpActive();
     IsAlarmActiveRoom2();
     IsLampActiveRoom2();
+   
 }
 
 /* exception function handler --------------------------------------------------- */
@@ -1692,11 +1721,16 @@ void ReadDataRoom1(){
   TempValue = dht.readTemperature();
   GasValue = map(analogRead(MQ2_SENSOR), 0, 4095, 0, 100);
   if(digitalRead(FLAME_SENSOR) == 1){
-    FireState = 0;
+    if(millis() - LastTimetoDetectFire > 20000){
+      Firebase.setBool(fbdo, "/Room1/SENSORS/Fire", FireState);
+      FireState = 0;
+    }
   } 
   else
   {
     FireState = 1;
+    Firebase.setBool(fbdo, "/Room1/SENSORS/Fire", FireState);
+    LastTimetoDetectFire = millis();
   }
 }
 
@@ -1704,7 +1738,6 @@ void ReadDataRoom1(){
 void SetDataRoom1(){
   Firebase.setInt(fbdo, "/Room1/SENSORS/Gas", GasValue); // SET gas value 
   Firebase.setFloat(fbdo, "/Room1/SENSORS/Temperature", TempValue );//set temp threshold  on firebase
-  Firebase.setBool(fbdo, "/Room1/SENSORS/Fire", FireState);
 }
 
 /*-------------------------------------------------------------------------------------*/
@@ -2083,8 +2116,8 @@ void IsPumpActive(){
 /*-----------------------------ROOM1-------------------------------*/
 
 void IsAlarmActiveRoom1(){
-  if (millis() - LastimeToSetDeviceState > 3000) {
-  LastimeToSetDeviceState = millis();
+  if (millis() - LastimeToSetAlarmStateRoom1 > 3000) {
+  LastimeToSetAlarmStateRoom1 = millis();
     if(AlarmState || AlarmState_tmp){
       uint32_t ADC_AlarmRoom1_Average = 0;
         for(uint8_t i = 0; i < 255; i++){
@@ -2105,8 +2138,8 @@ void IsAlarmActiveRoom1(){
   }
 }
 void IsLampActiveRoom1(){
-  if (millis() - LastimeToSetDeviceState > 3000) {
-  LastimeToSetDeviceState = millis();
+  if (millis() - LastimeToSetLampStateRoom1 > 3000) {
+  LastimeToSetLampStateRoom1 = millis();
     if(LampState || LampState_tmp){
     uint32_t ADC_LampRoom1_Average = 0;
       for(uint8_t i = 0; i < 255; i++){
@@ -2128,8 +2161,8 @@ void IsLampActiveRoom1(){
 /*-----------------------------ROOM2-------------------------------*/
 
 void IsAlarmActiveRoom2(){
-  if (millis() - LastimeToSetDeviceState > 3000) {
-  LastimeToSetDeviceState = millis();
+  if (millis() - LastimeToSetAlarmStateRoom2 > 3000) {
+  LastimeToSetAlarmStateRoom2 = millis();
     if(AlarmStateRoom2 || AlarmStateRoom2_tmp){
       uint32_t ADC_AlarmRoom2_Average = 0;
         for(uint8_t i = 0; i < 255; i++){
@@ -2150,8 +2183,8 @@ void IsAlarmActiveRoom2(){
   }
 }
 void IsLampActiveRoom2(){
-  if (millis() - LastimeToSetDeviceState > 3000) {
-  LastimeToSetDeviceState = millis();
+  if (millis() - LastimeToSetLampStateRoom2 > 3000) {
+  LastimeToSetLampStateRoom2 = millis();
     if(LampStateRoom2 || LampStateRoom2_tmp){
     uint32_t ADC_LampRoom2_Average = 0;
       for(uint8_t i = 0; i < 255; i++){
