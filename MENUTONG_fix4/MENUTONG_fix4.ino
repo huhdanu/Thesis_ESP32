@@ -108,6 +108,7 @@ unsigned long LastimeToSetAlarmStateRoom2 = 0;
 unsigned long LastimeToSetLampStateRoom1 = 0;
 unsigned long LastimeToSetLampStateRoom2 = 0;
 unsigned long LastimeChangeState = 0;
+unsigned long LastimeToGetOptionMenu = 0;
 unsigned long LastCall = 0;
 unsigned long lastTime = 0;
 /*-----------------------*/
@@ -613,8 +614,12 @@ void loop() {
           // break case LAYER3_MANUAL
           break;                                          
         }
+    }
+    if(millis() - LastimeToGetOptionMenu > 5000){
+      GetOptionMenu();
+      LastimeToGetOptionMenu = millis();
     }          
-    GetOptionMenu();
+    
     /* Reset to config wifi */
     LastState_ResetButton = NewState_ResetButton;   // save old state before get from button
     NewState_ResetButton = digitalRead(RESET);
