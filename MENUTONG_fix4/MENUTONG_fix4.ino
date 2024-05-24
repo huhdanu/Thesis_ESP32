@@ -26,15 +26,15 @@
 #define LAMP_ROOM2    4
 #define ALARM_ROOM2   2
 /*--------------------FEEDBACK DEFINITION OF DEVICES---------------------------------------------------*/
-#define ACS_PUMP        34 //ok
-#define ACS_ALARMROOM1  35 //ok
-#define ACS_ALARMROOM2  32 //ok
+#define ACS_PUMP        25 //ok 25
+#define ACS_ALARMROOM1  32 //ok 32
+#define ACS_ALARMROOM2  34 //ok 34
 /*---------------------------*/
-#define ACS_LAMPROOM2   25  //???
+#define ACS_LAMPROOM2   35  //??? 35
 #define ACS_LAMPROOM1   33 //ok
 
 
-#define ADCTHRESHOLD  2907 /*threshold to detect whether the LOAD is active*/
+#define ADCTHRESHOLD  2850 /*threshold to detect whether the LOAD is active* 2850/
 /*---------------------------------------------------------------------------------------------------*/
 #define FLAME_SENSOR 39
 #define DHT_PIN 0
