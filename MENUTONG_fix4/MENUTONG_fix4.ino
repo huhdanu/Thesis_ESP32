@@ -2119,6 +2119,7 @@ void IsPumpActive(){
       }
       Serial.print("ADC_Pump_Average");
       Serial.println(ADC_Pump_Average); 
+      Firebase.setInt(fbdo, "/ACTIVE/ADCPumpActive", ADC_Pump_Average); 
     }
   }
 }
@@ -2143,6 +2144,7 @@ void IsAlarmActiveRoom1(){
       }
       Serial.print("ADC_AlarmRoom1_Average");
       Serial.println(ADC_AlarmRoom1_Average);  
+      Firebase.setInt(fbdo, "/ACTIVE/ADCAlarmRoom1", ADC_AlarmRoom1_Average); 
     }
   }
 }
@@ -2164,6 +2166,7 @@ void IsLampActiveRoom1(){
       } 
       Serial.print("ADC_LampRoom1_Average");
       Serial.println(ADC_LampRoom1_Average);  
+      Firebase.setInt(fbdo, "/ACTIVE/ADCLampRoom1", ADC_LampRoom1_Average); 
     }
   }
 }
@@ -2188,6 +2191,7 @@ void IsAlarmActiveRoom2(){
       } 
       Serial.print("ADC_AlarmRoom2_Average");
       Serial.println(ADC_AlarmRoom2_Average); 
+      Firebase.setInt(fbdo, "/ACTIVE/ADCAlarmRoom2", ADC_AlarmRoom2_Average); 
     }
   }
 }
@@ -2208,7 +2212,8 @@ void IsLampActiveRoom2(){
         Firebase.setInt(fbdo, "/ACTIVE/IsLampActiveRoom2", 0); 
       } 
       Serial.print("ADC_LampRoom2_Average");
-      Serial.println(ADC_LampRoom2_Average);  
+      Serial.println(ADC_LampRoom2_Average); 
+      Firebase.setInt(fbdo, "/ACTIVE/ADCLampRoom2", ADC_LampRoom2_Average); 
     }
   }
 }
