@@ -34,7 +34,7 @@
 #define ACS_LAMPROOM1   33 //ok
 
 
-#define ADCTHRESHOLD  2850 /*threshold to detect whether the LOAD is active* 2850/
+// #define ADCTHRESHOLD  2850 /*threshold to detect whether the LOAD is active* 2850/
 /*---------------------------------------------------------------------------------------------------*/
 #define FLAME_SENSOR 39
 #define DHT_PIN 0
@@ -139,7 +139,7 @@ float TempValue, TempValue_tmp;
 uint8_t GasValue, GasValue_tmp;
 uint8_t GasThreshold, TempThreshold ;        // variable for big number
 uint8_t GasThreshold_tmp, TempThreshold_tmp ;
-
+uint16_t ADCTHRESHOLD;
 uint8_t pre_Value = 0;          // variable for save data threshold before be changed
 bool FireState;
 // uint8_t g_ValueGAS;
@@ -343,7 +343,7 @@ void loop() {
             SetLampStateRoom1();
             flag_LampOFFapproval = 0;
           }
-          ReCall();          
+          /*ReCall();*/          
         }       
         else{ /* AutoMenuTransitionState == 1 */
           MainMenu_AutoRoom2();
@@ -365,7 +365,7 @@ void loop() {
             SetLampStateRoom2();
             flag_LampRoom2OFFapproval = 0;
           }
-          ReCall();
+          /*ReCall();*/
           
         }
                 
@@ -377,7 +377,7 @@ void loop() {
           flag_PumpOFFapproval = 0;
         }
 
-        ReCall();
+        /*ReCall();*/
         
         AutoMenuTransitionState = !AutoMenuTransitionState;
         LastimeChangeState = millis();
@@ -390,20 +390,22 @@ void loop() {
 
       /*  */
       if((FireState || FireStateRoom2) && ((GasValue > GasThreshold)||(GasValueRoom2 > GasThresholdRoom2) ||(TempValue >  TempThreshold) ||(TempValueRoom2 > TempThresholdRoom2))){
-          PhoneCallState = 1;
+          PhoneCallState = 1; 
+          callPhone(phoneNumber);
+          delay(5);
       }
       else{
         f_EnablePhone = 1; // in normal state
         PhoneCallState = 0;
       }
 
-      if(PhoneCallState && f_EnablePhone){        
-        LastCall = millis();
-        callPhone(phoneNumber);
-        delay(18);
-        f_EnablePhone = 0;       
-      }
-      ReCall();   
+      // if(PhoneCallState && f_EnablePhone){        
+      //   LastCall = millis();
+      //   callPhone(phoneNumber);
+      //   delay(18);
+      //   f_EnablePhone = 0;       
+      // }
+      /*ReCall();*/   
       Serial.print("PhoneCallState is: ");
       Serial.println(PhoneCallState);
       Serial.print("f_EnablePhone is: ");
@@ -615,7 +617,7 @@ void loop() {
           break;                                          
         }
     }
-    if(millis() - LastimeToGetOptionMenu > 5000){
+    if(millis() - LastimeToGetOptionMenu > 8000){
       GetOptionMenu();
       LastimeToGetOptionMenu = millis();
     }          
@@ -2218,8 +2220,10 @@ void IsLampActiveRoom2(){
   }
 }
 void GetOptionMenu(){
-   Firebase.RTDB.getInt(&fbdo, "/OPTION");
+    Firebase.RTDB.getInt(&fbdo, "/ACTIVE");
     Option_tmp = fbdo.intData();
+    Firebase.RTDB.getInt(&fbdo, "/OPTION/ADCTHRESHOLD");
+    ADCTHRESHOLD = fbdo.intData();
     if((OptionMenu != Option_tmp) && (OptionMenu == Option_pre)){
       OptionMenu = Option_tmp;
     }
